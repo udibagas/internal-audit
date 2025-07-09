@@ -10,18 +10,21 @@ import {
   Space,
   Tag,
   message,
-  Popconfirm,
-  Card
+  Dropdown,
+  MenuProps
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  TeamOutlined
+  TeamOutlined,
+  MoreOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { Department, CreateDepartment, UpdateDepartment, User } from '@audit-system/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import dayjs from 'dayjs';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -90,20 +93,33 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({ open, onCancel, departm
 
   return (
     <Modal
+      width={450}
       title={isEdit ? 'Edit Department' : 'Create New Department'}
       open={open}
       onCancel={onCancel}
-      footer={null}
-      width={600}
+      afterClose={() => form.resetFields()}
+      onOk={() => form.submit()}
+      okText={isEdit ? 'Update' : 'Create'}
+      okButtonProps={{
+        variant: 'solid',
+        color: 'default',
+        loading: createMutation.isPending || updateMutation.isPending
+      }}
     >
       <Form
         form={form}
-        layout="vertical"
+        layout="horizontal"
+        labelCol={{ span: 8 }}
+        labelAlign='left'
         onFinish={onSubmit}
+        style={{ paddingTop: '20px' }}
+        requiredMark={false}
+        colon={false}
+        variant='filled'
       >
         <Form.Item
           name="name"
-          label="Department Name"
+          label="Name"
           rules={[{ required: true, message: 'Please enter department name' }]}
         >
           <Input placeholder="Enter department name" />
@@ -121,7 +137,7 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({ open, onCancel, departm
 
         <Form.Item
           name="managerId"
-          label="Department Manager"
+          label="Manager"
         >
           <Select
             placeholder="Select department manager"
@@ -134,28 +150,17 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({ open, onCancel, departm
             ))}
           </Select>
         </Form.Item>
-
-        <Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit" loading={createMutation.isPending || updateMutation.isPending}>
-              {isEdit ? 'Update' : 'Create'}
-            </Button>
-            <Button onClick={onCancel}>
-              Cancel
-            </Button>
-          </Space>
-        </Form.Item>
       </Form>
     </Modal>
   );
 };
 
 const DepartmentList: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState<Department | undefined>();
   const queryClient = useQueryClient();
 
-  const { data: departments, isLoading } = useQuery({
+  const { data: departments, isPending } = useQuery({
     queryKey: ['departments'],
     queryFn: () => api.get('/departments').then(res => res.data)
   });
@@ -171,11 +176,30 @@ const DepartmentList: React.FC = () => {
     },
   });
 
+  const handleEdit = (department: Department) => {
+    setEditingDepartment(department);
+    setModalOpen(true);
+  };
+
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setEditingDepartment(undefined);
+  };
+
   const columns = [
     {
       title: 'Name',
-      dataIndex: 'name',
       key: 'name',
+      render: (_: any, record: Department) => (
+        <Space>
+          <TeamOutlined />
+          <span>{record.name}</span>
+        </Space>
+      ),
     },
     {
       title: 'Description',
@@ -202,85 +226,95 @@ const DepartmentList: React.FC = () => {
       ),
     },
     {
-      title: 'Created At',
+      title: 'Created',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date: string) => new Date(date).toLocaleDateString(),
+      render: (date: string) => dayjs(date).format('MMM DD, YYYY'),
     },
     {
-      title: 'Actions',
+      title: <Button type='link' onClick={() => queryClient.invalidateQueries({ queryKey: ['departments'] })}><ReloadOutlined /></Button>,
       key: 'actions',
-      render: (record: Department) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingDepartment(record);
-              setIsModalOpen(true);
-            }}
-          >
-            Edit
-          </Button>
-          <Popconfirm
-            title="Are you sure you want to delete this department?"
-            onConfirm={() => deleteMutation.mutate(record.id)}
-            okText="Yes"
-            cancelText="No"
+      align: 'center' as const,
+      width: 60,
+      render: (_: any, record: Department) => {
+        const menuItems: MenuProps['items'] = [
+          {
+            key: 'edit',
+            label: 'Edit',
+            icon: <EditOutlined />,
+            onClick: () => handleEdit(record),
+          },
+          {
+            key: 'delete',
+            label: 'Delete',
+            icon: <DeleteOutlined />,
+            danger: true,
+            onClick: () => {
+              Modal.confirm({
+                title: 'Delete Department',
+                content: 'Are you sure you want to delete this department?',
+                okText: 'Yes',
+                cancelText: 'No',
+                onOk: () => handleDelete(record.id),
+              });
+            },
+          },
+        ];
+
+        return (
+          <Dropdown
+            menu={{ items: menuItems }}
+            trigger={['click']}
+            placement="bottomRight"
           >
             <Button
-              type="link"
-              danger
-              icon={<DeleteOutlined />}
-            >
-              Delete
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
+              type="text"
+              icon={<MoreOutlined />}
+              size="small"
+            />
+          </Dropdown>
+        );
+      },
     },
   ];
 
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setEditingDepartment(null);
-  };
-
   return (
-    <div style={{ padding: '24px' }}>
-      <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <Title level={2} style={{ margin: 0 }}>
-            <TeamOutlined /> Departments
-          </Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsModalOpen(true)}
-          >
-            Add Department
-          </Button>
-        </div>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 50 }}>
+        <Title level={3} style={{ margin: 0 }}>
+          <TeamOutlined /> Department Management
+        </Title>
+        <Button
+          variant='solid'
+          color='default'
+          icon={<PlusOutlined />}
+          onClick={() => setModalOpen(true)}
+        >
+          Add Department
+        </Button>
+      </div>
 
-        <Table
-          columns={columns}
-          dataSource={departments as any[]}
-          loading={isLoading}
-          rowKey="id"
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-          }}
-        />
+      <Table
+        size='small'
+        columns={columns}
+        dataSource={departments as any[]}
+        loading={isPending}
+        rowKey="id"
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} departments`,
+        }}
+      />
 
-        <DepartmentForm
-          open={isModalOpen}
-          onCancel={handleModalClose}
-          department={editingDepartment || undefined}
-          isEdit={!!editingDepartment}
-        />
-      </Card>
+      <DepartmentForm
+        open={modalOpen}
+        onCancel={handleModalClose}
+        department={editingDepartment}
+        isEdit={!!editingDepartment}
+      />
     </div>
   );
 };

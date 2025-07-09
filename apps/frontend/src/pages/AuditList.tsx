@@ -11,15 +11,17 @@ import {
   Space,
   Tag,
   message,
-  Card,
-  Row,
-  Col
+  Dropdown,
+  MenuProps
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   EyeOutlined,
-  AuditOutlined
+  AuditOutlined,
+  MoreOutlined,
+  ReloadOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import {
   Audit,
@@ -126,53 +128,60 @@ const AuditForm: React.FC<AuditFormProps> = ({ open, onCancel, audit, isEdit = f
 
   return (
     <Modal
+      width={450}
       title={isEdit ? 'Edit Audit' : 'Create New Audit'}
       open={open}
       onCancel={onCancel}
-      footer={null}
-      width={800}
+      afterClose={() => form.resetFields()}
+      onOk={() => form.submit()}
+      okText={isEdit ? 'Update' : 'Create'}
+      okButtonProps={{
+        variant: 'solid',
+        color: 'default',
+        loading: createMutation.isPending || updateMutation.isPending
+      }}
     >
       <Form
         form={form}
-        layout="vertical"
+        layout="horizontal"
+        labelCol={{ span: 8 }}
+        labelAlign='left'
         onFinish={onSubmit}
-        size="large"
+        style={{ paddingTop: '20px' }}
+        requiredMark={false}
+        colon={false}
+        variant='filled'
       >
         <Form.Item
           name="name"
-          label="Audit Name"
+          label="Name"
           rules={[{ required: true, message: 'Please input audit name!' }]}
         >
           <Input placeholder="Enter audit name" />
         </Form.Item>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="areaId"
-              label="Audit Area"
-              rules={[{ required: true, message: 'Please select audit area!' }]}
-            >
-              <Select placeholder="Select audit area">
-                {(areas || []).map((area: any) => (
-                  <Option key={area.id} value={area.id}>{area.name}</Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="standardId"
-              label="Audit Standard"
-            >
-              <Select placeholder="Select audit standard">
-                {(standards || []).map((standard: any) => (
-                  <Option key={standard.id} value={standard.id}>{standard.name}</Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
+        <Form.Item
+          name="areaId"
+          label="Audit Area"
+          rules={[{ required: true, message: 'Please select audit area!' }]}
+        >
+          <Select placeholder="Select audit area">
+            {(areas || []).map((area: any) => (
+              <Option key={area.id} value={area.id}>{area.name}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          name="standardId"
+          label="Standard"
+        >
+          <Select placeholder="Select audit standard">
+            {(standards || []).map((standard: any) => (
+              <Option key={standard.id} value={standard.id}>{standard.name}</Option>
+            ))}
+          </Select>
+        </Form.Item>
 
         {isEdit && (
           <Form.Item
@@ -188,67 +197,34 @@ const AuditForm: React.FC<AuditFormProps> = ({ open, onCancel, audit, isEdit = f
           </Form.Item>
         )}
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="startDate"
-              label="Start Date"
-              rules={[{ required: true, message: 'Please select start date!' }]}
-            >
-              <DatePicker style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="endDate"
-              label="End Date"
-              rules={[{ required: true, message: 'Please select end date!' }]}
-            >
-              <DatePicker style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-        </Row>
+        <Form.Item
+          name="startDate"
+          label="Start Date"
+          rules={[{ required: true, message: 'Please select start date!' }]}
+        >
+          <DatePicker style={{ width: '100%' }} />
+        </Form.Item>
 
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="leadAuditorId"
-              label="Lead Auditor"
-              rules={[{ required: true, message: 'Please select lead auditor!' }]}
-            >
-              <Select placeholder="Select lead auditor">
-                {auditors.map((user: any) => (
-                  <Option key={user.id} value={user.id}>
-                    {user.name} ({user.role?.name || 'No Role'})
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="endDate"
-              label="End Date"
-              rules={[{ required: true, message: 'Please select end date!' }]}
-            >
-              <DatePicker style={{ width: '100%' }} />
-            </Form.Item>
-          </Col>
-        </Row>
+        <Form.Item
+          name="endDate"
+          label="End Date"
+          rules={[{ required: true, message: 'Please select end date!' }]}
+        >
+          <DatePicker style={{ width: '100%' }} />
+        </Form.Item>
 
-        <Form.Item style={{ marginBottom: 0 }}>
-          <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-            <Button onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={createMutation.isPending || updateMutation.isPending}
-            >
-              {isEdit ? 'Update' : 'Create'}
-            </Button>
-          </Space>
+        <Form.Item
+          name="leadAuditorId"
+          label="Lead Auditor"
+          rules={[{ required: true, message: 'Please select lead auditor!' }]}
+        >
+          <Select placeholder="Select lead auditor">
+            {auditors.map((user: any) => (
+              <Option key={user.id} value={user.id}>
+                {user.name} ({user.role?.name || 'No Role'})
+              </Option>
+            ))}
+          </Select>
         </Form.Item>
       </Form>
     </Modal>
@@ -259,11 +235,23 @@ const AuditList: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingAudit, setEditingAudit] = useState<Audit | undefined>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const { data: audits, isLoading } = useQuery({
+  const { data: audits, isPending } = useQuery({
     queryKey: ['audits'],
     queryFn: () => api.get('/audits').then(res => res.data),
     refetchOnWindowFocus: false,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => api.delete(`/audits/${id}`),
+    onSuccess: () => {
+      message.success('Audit deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
+    },
+    onError: (error: any) => {
+      message.error(error.response?.data?.message || 'Failed to delete audit');
+    },
   });
 
   const handleEdit = (audit: Audit) => {
@@ -273,6 +261,10 @@ const AuditList: React.FC = () => {
 
   const handleView = (audit: Audit) => {
     navigate(`/audits/${audit.id}`);
+  };
+
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
   };
 
   const handleModalClose = () => {
@@ -295,12 +287,11 @@ const AuditList: React.FC = () => {
   const columns = [
     {
       title: 'Name',
-      dataIndex: 'name',
       key: 'name',
-      render: (name: string) => (
+      render: (_: any, record: Audit) => (
         <Space>
           <AuditOutlined />
-          <span>{name}</span>
+          <span>{record.name}</span>
         </Space>
       ),
     },
@@ -337,35 +328,67 @@ const AuditList: React.FC = () => {
       render: (date: string) => date ? dayjs(date).format('MMM DD, YYYY') : '-',
     },
     {
-      title: 'Actions',
+      title: <Button type='link' onClick={() => queryClient.invalidateQueries({ queryKey: ['audits'] })}><ReloadOutlined /></Button>,
       key: 'actions',
-      render: (_: any, record: Audit) => (
-        <Space>
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => handleView(record)}
-            size="small"
+      align: 'center' as const,
+      width: 60,
+      render: (_: any, record: Audit) => {
+        const menuItems: MenuProps['items'] = [
+          {
+            key: 'view',
+            label: 'View',
+            icon: <EyeOutlined />,
+            onClick: () => handleView(record),
+          },
+          {
+            key: 'edit',
+            label: 'Edit',
+            icon: <EditOutlined />,
+            onClick: () => handleEdit(record),
+          },
+          {
+            key: 'delete',
+            label: 'Delete',
+            icon: <DeleteOutlined />,
+            danger: true,
+            onClick: () => {
+              Modal.confirm({
+                title: 'Delete Audit',
+                content: 'Are you sure you want to delete this audit?',
+                okText: 'Yes',
+                cancelText: 'No',
+                onOk: () => handleDelete(record.id),
+              });
+            },
+          },
+        ];
+
+        return (
+          <Dropdown
+            menu={{ items: menuItems }}
+            trigger={['click']}
+            placement="bottomRight"
           >
-            View
-          </Button>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            size="small"
-          >
-            Edit
-          </Button>
-        </Space>
-      ),
+            <Button
+              type="text"
+              icon={<MoreOutlined />}
+              size="small"
+            />
+          </Dropdown>
+        );
+      },
     },
   ];
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Title level={2}>Audit Management</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 50 }}>
+        <Title level={3} style={{ margin: 0 }}>
+          <AuditOutlined /> Audit Management
+        </Title>
         <Button
-          type="primary"
+          variant='solid'
+          color='default'
           icon={<PlusOutlined />}
           onClick={() => setModalOpen(true)}
         >
@@ -373,21 +396,20 @@ const AuditList: React.FC = () => {
         </Button>
       </div>
 
-      <Card>
-        <Table
-          columns={columns}
-          dataSource={audits as Audit[]}
-          loading={isLoading}
-          rowKey="id"
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} audits`,
-          }}
-        />
-      </Card>
+      <Table
+        size='small'
+        columns={columns}
+        dataSource={audits as Audit[]}
+        loading={isPending}
+        rowKey="id"
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} audits`,
+        }}
+      />
 
       <AuditForm
         open={modalOpen}

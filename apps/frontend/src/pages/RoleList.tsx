@@ -9,18 +9,21 @@ import {
   Space,
   Tag,
   message,
-  Popconfirm,
-  Card
+  Dropdown,
+  MenuProps
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  SafetyOutlined
+  SafetyOutlined,
+  MoreOutlined,
+  ReloadOutlined
 } from '@ant-design/icons';
 import { Role, CreateRole, UpdateRole, User } from '@audit-system/shared';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import dayjs from 'dayjs';
 
 const { Title } = Typography;
 
@@ -82,16 +85,29 @@ const RoleForm: React.FC<RoleFormProps> = ({ open, onCancel, role, isEdit = fals
 
   return (
     <Modal
+      width={450}
       title={isEdit ? 'Edit Role' : 'Create New Role'}
       open={open}
       onCancel={onCancel}
-      footer={null}
-      width={600}
+      afterClose={() => form.resetFields()}
+      onOk={() => form.submit()}
+      okText={isEdit ? 'Update' : 'Create'}
+      okButtonProps={{
+        variant: 'solid',
+        color: 'default',
+        loading: createMutation.isPending || updateMutation.isPending
+      }}
     >
       <Form
         form={form}
-        layout="vertical"
+        layout="horizontal"
+        labelCol={{ span: 8 }}
+        labelAlign='left'
         onFinish={onSubmit}
+        style={{ paddingTop: '20px' }}
+        requiredMark={false}
+        colon={false}
+        variant='filled'
       >
         <Form.Item
           name="name"
@@ -110,25 +126,14 @@ const RoleForm: React.FC<RoleFormProps> = ({ open, onCancel, role, isEdit = fals
             rows={3}
           />
         </Form.Item>
-
-        <Form.Item>
-          <Space>
-            <Button type="primary" htmlType="submit" loading={createMutation.isPending || updateMutation.isPending}>
-              {isEdit ? 'Update' : 'Create'}
-            </Button>
-            <Button onClick={onCancel}>
-              Cancel
-            </Button>
-          </Space>
-        </Form.Item>
       </Form>
     </Modal>
   );
 };
 
 const RoleList: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<Role | undefined>();
   const queryClient = useQueryClient();
 
   const { data: roles, isPending } = useQuery({
@@ -147,11 +152,30 @@ const RoleList: React.FC = () => {
     },
   });
 
+  const handleEdit = (role: Role) => {
+    setEditingRole(role);
+    setModalOpen(true);
+  };
+
+  const handleDelete = (id: number) => {
+    deleteMutation.mutate(id);
+  };
+
+  const handleModalClose = () => {
+    setModalOpen(false);
+    setEditingRole(undefined);
+  };
+
   const columns = [
     {
       title: 'Name',
-      dataIndex: 'name',
       key: 'name',
+      render: (_: any, record: Role) => (
+        <Space>
+          <SafetyOutlined />
+          <span>{record.name}</span>
+        </Space>
+      ),
     },
     {
       title: 'Description',
@@ -167,85 +191,95 @@ const RoleList: React.FC = () => {
       ),
     },
     {
-      title: 'Created At',
+      title: 'Created',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      render: (date: string) => new Date(date).toLocaleDateString(),
+      render: (date: string) => dayjs(date).format('MMM DD, YYYY'),
     },
     {
-      title: 'Actions',
+      title: <Button type='link' onClick={() => queryClient.invalidateQueries({ queryKey: ['roles'] })}><ReloadOutlined /></Button>,
       key: 'actions',
-      render: (record: Role) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setEditingRole(record);
-              setIsModalOpen(true);
-            }}
-          >
-            Edit
-          </Button>
-          <Popconfirm
-            title="Are you sure you want to delete this role?"
-            onConfirm={() => deleteMutation.mutate(record.id)}
-            okText="Yes"
-            cancelText="No"
+      align: 'center' as const,
+      width: 60,
+      render: (_: any, record: Role) => {
+        const menuItems: MenuProps['items'] = [
+          {
+            key: 'edit',
+            label: 'Edit',
+            icon: <EditOutlined />,
+            onClick: () => handleEdit(record),
+          },
+          {
+            key: 'delete',
+            label: 'Delete',
+            icon: <DeleteOutlined />,
+            danger: true,
+            onClick: () => {
+              Modal.confirm({
+                title: 'Delete Role',
+                content: 'Are you sure you want to delete this role?',
+                okText: 'Yes',
+                cancelText: 'No',
+                onOk: () => handleDelete(record.id),
+              });
+            },
+          },
+        ];
+
+        return (
+          <Dropdown
+            menu={{ items: menuItems }}
+            trigger={['click']}
+            placement="bottomRight"
           >
             <Button
-              type="link"
-              danger
-              icon={<DeleteOutlined />}
-            >
-              Delete
-            </Button>
-          </Popconfirm>
-        </Space>
-      ),
+              type="text"
+              icon={<MoreOutlined />}
+              size="small"
+            />
+          </Dropdown>
+        );
+      },
     },
   ];
 
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setEditingRole(null);
-  };
-
   return (
-    <div style={{ padding: '24px' }}>
-      <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <Title level={2} style={{ margin: 0 }}>
-            <SafetyOutlined /> Roles
-          </Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setIsModalOpen(true)}
-          >
-            Add Role
-          </Button>
-        </div>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 50 }}>
+        <Title level={3} style={{ margin: 0 }}>
+          <SafetyOutlined /> Role Management
+        </Title>
+        <Button
+          variant='solid'
+          color='default'
+          icon={<PlusOutlined />}
+          onClick={() => setModalOpen(true)}
+        >
+          Add Role
+        </Button>
+      </div>
 
-        <Table
-          columns={columns}
-          dataSource={roles}
-          loading={isPending}
-          rowKey="id"
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-          }}
-        />
+      <Table
+        size='small'
+        columns={columns}
+        dataSource={roles}
+        loading={isPending}
+        rowKey="id"
+        pagination={{
+          pageSize: 10,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total, range) =>
+            `${range[0]}-${range[1]} of ${total} roles`,
+        }}
+      />
 
-        <RoleForm
-          open={isModalOpen}
-          onCancel={handleModalClose}
-          role={editingRole || undefined}
-          isEdit={!!editingRole}
-        />
-      </Card>
+      <RoleForm
+        open={modalOpen}
+        onCancel={handleModalClose}
+        role={editingRole}
+        isEdit={!!editingRole}
+      />
     </div>
   );
 };

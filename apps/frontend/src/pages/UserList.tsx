@@ -100,15 +100,12 @@ const UserForm: React.FC<UserFormProps> = ({ open, onCancel, user, isEdit = fals
       onOk={() => form.submit()}
       okText={isEdit ? 'Update' : 'Create'}
       okButtonProps={{
-        form: 'form',
-        htmlType: 'submit',
         variant: 'solid',
         color: 'default',
         loading: createMutation.isPending || updateMutation.isPending
       }}
     >
       <Form
-        id='form'
         form={form}
         layout="horizontal"
         labelCol={{ span: 8 }}
