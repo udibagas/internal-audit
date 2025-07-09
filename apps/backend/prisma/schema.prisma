@@ -1,0 +1,283 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  Int                @id @default(autoincrement())
+  name                String
+  password            String
+  email               String             @unique
+  isActive            Boolean            @default(true)
+  lastLogin           DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @default(now()) @updatedAt
+  role                Role?              @relation(fields: [roleId], references: [id])
+  roleId              Int?
+  department          Department?        @relation(fields: [departmentId], references: [id])
+  departmentId        Int?
+  managedDepartment   Department[]       @relation("DepartmentManager")
+  auditTeams          AuditTeam[]
+  leadAudits          Audit[]            @relation("LeadAuditor")
+  assignedAudits      AuditPlanItem[]    @relation("AssignedAuditor")
+  identifiedFindings  Finding[]          @relation("IdentifiedFindings")
+  responsibleFindings Finding[]          @relation("ResponsibleFindings")
+  correctiveActions   CorrectiveAction[] @relation("AssignedActions")
+  verifiedActions     CorrectiveAction[] @relation("VerifiedActions")
+  createdPlans        AuditPlan[]        @relation("PlanCreator")
+  approvedPlans       AuditPlan[]        @relation("PlanApprover")
+  uploadedDocuments   Document[]
+  comments            Comment[]
+  generatedReports    AuditReport[]      @relation("ReportGenerator")
+  approvedReports     AuditReport[]      @relation("ReportApprover")
+  notifications       Notification[]
+  AuditChecklist      AuditChecklist[]
+  ActionUpdate        ActionUpdate[]
+}
+
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  permissions Json?
+  createdAt   DateTime @default(now())
+  users       User[]
+}
+
+model Department {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  description String?
+  createdAt   DateTime    @default(now())
+  manager     User?       @relation("DepartmentManager", fields: [managerId], references: [id])
+  managerId   Int?
+  users       User[]
+  auditAreas  AuditArea[]
+}
+
+model AuditStandard {
+  id            Int             @id @default(autoincrement())
+  name          String
+  description   String?
+  version       String?
+  effectiveDate DateTime?
+  isActive      Boolean         @default(true)
+  createdAt     DateTime        @default(now())
+  planItems     AuditPlanItem[]
+  audits        Audit[]
+}
+
+model AuditArea {
+  id           Int             @id @default(autoincrement())
+  name         String
+  description  String?
+  riskLevel    String?
+  createdAt    DateTime        @default(now())
+  department   Department      @relation(fields: [departmentId], references: [id])
+  departmentId Int
+  planItems    AuditPlanItem[]
+  audits       Audit[]
+}
+
+model AuditPlan {
+  id           Int             @id @default(autoincrement())
+  name         String
+  fiscalYear   String
+  description  String?
+  status       String          @default("Draft")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @default(now()) @updatedAt
+  createdBy    User            @relation("PlanCreator", fields: [createdById], references: [id])
+  createdById  Int
+  approvedBy   User?           @relation("PlanApprover", fields: [approvedById], references: [id])
+  approvedById Int?
+  approvedAt   DateTime?
+  items        AuditPlanItem[]
+}
+
+model AuditPlanItem {
+  id                Int            @id @default(autoincrement())
+  plan              AuditPlan      @relation(fields: [planId], references: [id])
+  planId            Int
+  area              AuditArea      @relation(fields: [areaId], references: [id])
+  areaId            Int
+  standard          AuditStandard? @relation(fields: [standardId], references: [id])
+  standardId        Int?
+  plannedStartDate  DateTime?
+  plannedEndDate    DateTime?
+  auditFrequency    String?
+  priority          String?
+  status            String         @default("Planned")
+  assignedAuditor   User?          @relation("AssignedAuditor", fields: [assignedAuditorId], references: [id])
+  assignedAuditorId Int?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @default(now()) @updatedAt
+  audits            Audit[]
+}
+
+model Audit {
+  id            Int              @id @default(autoincrement())
+  name          String
+  planItem      AuditPlanItem?   @relation(fields: [planItemId], references: [id])
+  planItemId    Int?
+  area          AuditArea        @relation(fields: [areaId], references: [id])
+  areaId        Int
+  standard      AuditStandard?   @relation(fields: [standardId], references: [id])
+  standardId    Int?
+  startDate     DateTime?
+  endDate       DateTime?
+  status        String           @default("Not Started")
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @default(now()) @updatedAt
+  leadAuditor   User             @relation("LeadAuditor", fields: [leadAuditorId], references: [id])
+  leadAuditorId Int
+  teamMembers   AuditTeam[]
+  checklists    AuditChecklist[]
+  findings      Finding[]
+  reports       AuditReport[]
+}
+
+model AuditTeam {
+  id         Int      @id @default(autoincrement())
+  audit      Audit    @relation(fields: [auditId], references: [id])
+  auditId    Int
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  role       String
+  assignedAt DateTime @default(now())
+
+  @@unique([auditId, userId])
+}
+
+model AuditChecklist {
+  id                Int       @id @default(autoincrement())
+  audit             Audit?    @relation(fields: [auditId], references: [id])
+  auditId           Int?
+  itemNumber        String?
+  description       String
+  referenceStandard String?
+  createdAt         DateTime  @default(now())
+  createdBy         User      @relation(fields: [createdById], references: [id])
+  createdById       Int
+  findings          Finding[]
+}
+
+model Finding {
+  id                 Int                @id @default(autoincrement())
+  audit              Audit              @relation(fields: [auditId], references: [id])
+  auditId            Int
+  checklistItem      AuditChecklist?    @relation(fields: [checklistId], references: [id])
+  checklistId        Int?
+  title              String
+  description        String
+  category           String?
+  severity           String?
+  riskLevel          String?
+  status             String             @default("Open")
+  identifiedBy       User               @relation("IdentifiedFindings", fields: [identifiedById], references: [id])
+  identifiedById     Int
+  identifiedDate     DateTime           @default(now())
+  dueDate            DateTime?
+  responsibleParty   User?              @relation("ResponsibleFindings", fields: [responsiblePartyId], references: [id])
+  responsiblePartyId Int?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @default(now()) @updatedAt
+  correctiveActions  CorrectiveAction[]
+  documents          Document[]
+  comments           Comment[]
+}
+
+model CorrectiveAction {
+  id                   Int            @id @default(autoincrement())
+  finding              Finding        @relation(fields: [findingId], references: [id])
+  findingId            Int
+  description          String
+  dueDate              DateTime?
+  status               String         @default("Pending")
+  assignedTo           User           @relation("AssignedActions", fields: [assignedToId], references: [id])
+  assignedToId         Int
+  completionDate       DateTime?
+  verificationRequired Boolean        @default(true)
+  verifiedBy           User?          @relation("VerifiedActions", fields: [verifiedById], references: [id])
+  verifiedById         Int?
+  verifiedDate         DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @default(now()) @updatedAt
+  updates              ActionUpdate[]
+  documents            Document[]
+}
+
+model ActionUpdate {
+  id                 Int              @id @default(autoincrement())
+  action             CorrectiveAction @relation(fields: [actionId], references: [id])
+  actionId           Int
+  text               String
+  updateDate         DateTime         @default(now())
+  updatedBy          User             @relation(fields: [updatedById], references: [id])
+  updatedById        Int
+  percentageComplete Int              @default(0)
+}
+
+model Document {
+  id                 Int               @id @default(autoincrement())
+  name               String
+  type               String?
+  path               String
+  size               Int?
+  mimeType           String?
+  relatedTo          String?
+  relatedId          Int?
+  description        String?
+  uploadedBy         User              @relation(fields: [uploadedById], references: [id])
+  uploadedById       Int
+  uploadedAt         DateTime          @default(now())
+  Finding            Finding?          @relation(fields: [findingId], references: [id])
+  findingId          Int?
+  CorrectiveAction   CorrectiveAction? @relation(fields: [correctiveActionId], references: [id])
+  correctiveActionId Int?
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  relatedTo String
+  relatedId Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  Finding   Finding? @relation(fields: [findingId], references: [id])
+  findingId Int?
+}
+
+model AuditReport {
+  id             Int       @id @default(autoincrement())
+  audit          Audit     @relation(fields: [auditId], references: [id])
+  auditId        Int
+  name           String
+  type           String?
+  generationDate DateTime  @default(now())
+  generatedBy    User      @relation("ReportGenerator", fields: [generatedById], references: [id])
+  generatedById  Int
+  path           String?
+  status         String    @default("Draft")
+  approvedBy     User?     @relation("ReportApprover", fields: [approvedById], references: [id])
+  approvedById   Int?
+  approvedAt     DateTime?
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  title     String
+  message   String
+  relatedTo String?
+  relatedId Int?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
