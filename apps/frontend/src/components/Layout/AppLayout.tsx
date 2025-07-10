@@ -138,16 +138,22 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             justifyContent: 'space-between',
           }}
         >
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{
-              fontSize: '16px',
-              width: 64,
-              height: 64,
-            }}
-          />
+          <div>
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{
+                fontSize: '16px',
+                width: 64,
+                height: 64,
+              }}
+            />
+            <span style={{ marginLeft: 16, fontSize: 18, fontWeight: 'bold' }}>
+              Internal Audit System
+            </span>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span>Welcome, {user?.name}</span>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
