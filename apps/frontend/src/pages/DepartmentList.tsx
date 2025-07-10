@@ -22,9 +22,10 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 import { Department, CreateDepartment, UpdateDepartment, User } from '@audit-system/shared';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import dayjs from 'dayjs';
+import { useFetch } from '@/hooks/useFetch';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -40,10 +41,7 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({ open, onCancel, departm
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
 
-  const { data: users } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => api.get('/users').then(res => res.data)
-  });
+  const { data: users } = useFetch<User[]>('/users');
 
   const createMutation = useMutation({
     mutationFn: (data: CreateDepartment) => api.post('/departments', data),
@@ -160,10 +158,7 @@ const DepartmentList: React.FC = () => {
   const [editingDepartment, setEditingDepartment] = useState<Department | undefined>();
   const queryClient = useQueryClient();
 
-  const { data: departments, isPending } = useQuery({
-    queryKey: ['departments'],
-    queryFn: () => api.get('/departments').then(res => res.data)
-  });
+  const { data: departments, isPending } = useFetch<Department[]>('/departments');
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/departments/${id}`),
@@ -295,7 +290,6 @@ const DepartmentList: React.FC = () => {
       </div>
 
       <Table
-        size='small'
         columns={columns}
         dataSource={departments as any[]}
         loading={isPending}

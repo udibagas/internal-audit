@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router';
 import AuthProvider, { useAuth } from '@/contexts/AuthContext';
 import Login from '@/pages/Login';
 import Dashboard from '@/pages/Dashboard';
@@ -10,7 +10,10 @@ import RoleList from '@/pages/RoleList';
 import DepartmentList from '@/pages/DepartmentList';
 import AppLayout from '@/components/Layout/AppLayout';
 import AuditAreasList from '@/pages/AuditAreasList';
-import AuditAreasForm from '@/pages/AuditAreasForm';
+import AuditStandardsList from '@/pages/AuditStandardsList';
+import AuditTeamsList from '@/pages/AuditTeamsList';
+import AuditPlansList from '@/pages/AuditPlansList';
+import AuditPlanDetail from '@/pages/AuditPlanDetail';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -45,7 +48,10 @@ function App() {
                   <Route path="/roles" element={<RoleList />} />
                   <Route path="/departments" element={<DepartmentList />} />
                   <Route path="/audit-areas" element={<AuditAreasList />} />
-                  <Route path="/audit-areas/:id" element={<AuditAreasForm />} />
+                  <Route path="/audit-standards" element={<AuditStandardsList />} />
+                  <Route path="/audit-teams" element={<AuditTeamsList />} />
+                  <Route path="/audit-plans" element={<AuditPlansList />} />
+                  <Route path="/audit-plans/:id" element={<AuditPlanDetail />} />
                 </Routes>
               </AppLayout>
             </ProtectedRoute>

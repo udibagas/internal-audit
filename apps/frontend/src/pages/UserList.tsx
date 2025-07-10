@@ -21,10 +21,11 @@ import {
   MoreOutlined,
   ReloadOutlined
 } from '@ant-design/icons';
-import { User, CreateUser, UpdateUser } from '@audit-system/shared';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { User, CreateUser, UpdateUser, Role, Department } from '@audit-system/shared';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import dayjs from 'dayjs';
+import { useFetch } from '@/hooks/useFetch';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -192,23 +193,9 @@ const UserList: React.FC = () => {
   const [editingUser, setEditingUser] = useState<User | undefined>();
   const queryClient = useQueryClient();
 
-  const { data: users, isPending } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => api.get('/users').then(res => res.data),
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: roles } = useQuery({
-    queryKey: ['roles'],
-    queryFn: () => api.get('/roles').then(res => res.data),
-    refetchOnWindowFocus: false,
-  });
-
-  const { data: departments } = useQuery({
-    queryKey: ['departments'],
-    queryFn: () => api.get('/departments').then(res => res.data),
-    refetchOnWindowFocus: false,
-  });
+  const { data: users, isPending } = useFetch<User[]>('/users');
+  const { data: roles } = useFetch<Role[]>('/roles');
+  const { data: departments } = useFetch<Department[]>('/departments');
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/users/${id}`),
@@ -359,7 +346,6 @@ const UserList: React.FC = () => {
       </div>
 
       <Table
-        size='small'
         columns={columns}
         dataSource={users}
         loading={isPending}

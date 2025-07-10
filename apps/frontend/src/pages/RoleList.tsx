@@ -21,9 +21,10 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 import { Role, CreateRole, UpdateRole, User } from '@audit-system/shared';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import dayjs from 'dayjs';
+import { useFetch } from '@/hooks/useFetch';
 
 const { Title } = Typography;
 
@@ -136,10 +137,7 @@ const RoleList: React.FC = () => {
   const [editingRole, setEditingRole] = useState<Role | undefined>();
   const queryClient = useQueryClient();
 
-  const { data: roles, isPending } = useQuery({
-    queryKey: ['roles'],
-    queryFn: () => api.get('/roles').then(res => res.data)
-  });
+  const { data: roles, isPending } = useFetch<Role[]>('/roles');
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/roles/${id}`),
@@ -260,7 +258,6 @@ const RoleList: React.FC = () => {
       </div>
 
       <Table
-        size='small'
         columns={columns}
         dataSource={roles}
         loading={isPending}

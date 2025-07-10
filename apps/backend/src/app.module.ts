@@ -6,6 +6,8 @@ import { UsersModule } from "./users/users.module";
 import { RolesModule } from "./roles/roles.module";
 import { DepartmentsModule } from "./departments/departments.module";
 import { AuditStandardsModule } from "./audit-standards/audit-standards.module";
+import { AuditTeamsModule } from "./audit-teams/audit-teams.module";
+import { AuditPlansModule } from "./audit-plans/audit-plans.module";
 import { AuditsModule } from "./audits/audits.module";
 import { FindingsModule } from "./findings/findings.module";
 import { DocumentsModule } from "./documents/documents.module";
@@ -24,6 +26,8 @@ import { AuditAreasModule } from "./audit-areas/audit-areas.module";
     DepartmentsModule,
     AuditAreasModule,
     AuditStandardsModule,
+    AuditTeamsModule,
+    AuditPlansModule,
     AuditsModule,
     FindingsModule,
     DocumentsModule,

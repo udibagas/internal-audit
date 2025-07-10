@@ -6,7 +6,8 @@ import {
   Modal,
   Form,
   Input,
-  Select,
+  DatePicker,
+  Switch,
   Space,
   Tag,
   message,
@@ -17,83 +18,86 @@ import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
-  SafetyOutlined,
+  BookOutlined,
   MoreOutlined,
   ReloadOutlined
 } from '@ant-design/icons';
-import { AuditArea, CreateAuditArea, UpdateAuditArea, Department } from '@audit-system/shared';
+import { AuditStandard, CreateAuditStandard, UpdateAuditStandard } from '@audit-system/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from 'react-router';
-import api, { create, updateById } from '@/lib/api';
+import api from '@/lib/api';
 import dayjs from 'dayjs';
 import { useFetch } from '@/hooks/useFetch';
 
 const { Title } = Typography;
-const { Option } = Select;
 
-interface AuditAreaFormProps {
+interface AuditStandardFormProps {
   open: boolean;
   onCancel: () => void;
-  auditArea?: AuditArea;
+  auditStandard?: AuditStandard;
   isEdit?: boolean;
 }
 
-const AuditAreaForm: React.FC<AuditAreaFormProps> = ({ open, onCancel, auditArea, isEdit = false }) => {
+const AuditStandardForm: React.FC<AuditStandardFormProps> = ({ open, onCancel, auditStandard, isEdit = false }) => {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
-  const { data: departments } = useFetch<Department[]>('/departments');
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateAuditArea) => create<CreateAuditArea, AuditArea>('/audit-areas', data),
+    mutationFn: (data: CreateAuditStandard) => api.post('/audit-standards', data),
     onSuccess: () => {
-      message.success('Audit area created successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-areas'] });
+      message.success('Audit standard created successfully');
+      queryClient.invalidateQueries({ queryKey: ['audit-standards'] });
       onCancel();
       form.resetFields();
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to create audit area');
+      message.error(error.response?.data?.message || 'Failed to create audit standard');
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateAuditArea }) => updateById<UpdateAuditArea, AuditArea>(`/audit-areas/`, id, data),
+    mutationFn: ({ id, data }: { id: number; data: UpdateAuditStandard }) => api.patch(`/audit-standards/${id}`, data),
     onSuccess: () => {
-      message.success('Audit area updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-areas'] });
+      message.success('Audit standard updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['audit-standards'] });
       onCancel();
       form.resetFields();
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to update audit area');
+      message.error(error.response?.data?.message || 'Failed to update audit standard');
     },
   });
 
-  const onSubmit = async (values: CreateAuditArea | UpdateAuditArea) => {
-    if (isEdit && auditArea) {
-      updateMutation.mutate({ id: auditArea.id, data: values });
+  const onSubmit = async (values: any) => {
+    const payload = {
+      ...values,
+      effectiveDate: values.effectiveDate?.toDate(),
+    };
+
+    if (isEdit && auditStandard) {
+      updateMutation.mutate({ id: auditStandard.id, data: payload });
     } else {
-      createMutation.mutate(values as CreateAuditArea);
+      createMutation.mutate(payload as CreateAuditStandard);
     }
   };
 
   React.useEffect(() => {
-    if (isEdit && auditArea) {
+    if (isEdit && auditStandard) {
       form.setFieldsValue({
-        name: auditArea.name,
-        description: auditArea.description,
-        riskLevel: auditArea.riskLevel,
-        departmentId: auditArea.departmentId,
+        name: auditStandard.name,
+        description: auditStandard.description,
+        version: auditStandard.version,
+        effectiveDate: auditStandard.effectiveDate ? dayjs(auditStandard.effectiveDate) : null,
+        isActive: auditStandard.isActive,
       });
     } else {
       form.resetFields();
     }
-  }, [auditArea, isEdit, form]);
+  }, [auditStandard, isEdit, form]);
 
   return (
     <Modal
       width={450}
-      title={isEdit ? 'Edit Audit Area' : 'Create New Audit Area'}
+      title={isEdit ? 'Edit Audit Standard' : 'Create New Audit Standard'}
       open={open}
       onCancel={onCancel}
       afterClose={() => form.resetFields()}
@@ -119,9 +123,9 @@ const AuditAreaForm: React.FC<AuditAreaFormProps> = ({ open, onCancel, auditArea
         <Form.Item
           name="name"
           label="Name"
-          rules={[{ required: true, message: 'Please input audit area name!' }]}
+          rules={[{ required: true, message: 'Please input standard name!' }]}
         >
-          <Input placeholder="Audit area name" />
+          <Input placeholder="Audit standard name" />
         </Form.Item>
 
         <Form.Item
@@ -135,53 +139,53 @@ const AuditAreaForm: React.FC<AuditAreaFormProps> = ({ open, onCancel, auditArea
         </Form.Item>
 
         <Form.Item
-          name="riskLevel"
-          label="Risk Level"
+          name="version"
+          label="Version"
         >
-          <Select placeholder="Select risk level">
-            <Option value="Low">Low</Option>
-            <Option value="Medium">Medium</Option>
-            <Option value="High">High</Option>
-            <Option value="Critical">Critical</Option>
-          </Select>
+          <Input placeholder="e.g., 1.0, 2023.1" />
         </Form.Item>
 
         <Form.Item
-          name="departmentId"
-          label="Department"
+          name="effectiveDate"
+          label="Effective Date"
         >
-          <Select placeholder="Select department">
-            {(departments as any[])?.map((dept: Department) => (
-              <Option key={dept.id} value={dept.id}>{dept.name}</Option>
-            ))}
-          </Select>
+          <DatePicker style={{ width: '100%' }} />
         </Form.Item>
+
+        {isEdit && (
+          <Form.Item
+            name="isActive"
+            label="Active"
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        )}
       </Form>
     </Modal>
   );
 };
 
-const AuditAreasList: React.FC = () => {
+const AuditStandardsList: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
-  const [editingAuditArea, setEditingAuditArea] = useState<AuditArea | undefined>();
-  const navigate = useNavigate();
+  const [editingAuditStandard, setEditingAuditStandard] = useState<AuditStandard | undefined>();
   const queryClient = useQueryClient();
 
-  const { data: auditAreas, isPending } = useFetch<AuditArea[]>('/audit-areas');
+  const { data: auditStandards, isPending } = useFetch<AuditStandard[]>('/audit-standards');
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/audit-areas/${id}`),
+    mutationFn: (id: number) => api.delete(`/audit-standards/${id}`),
     onSuccess: () => {
-      message.success('Audit area deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-areas'] });
+      message.success('Audit standard deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['audit-standards'] });
     },
     onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to delete audit area');
+      message.error(error.response?.data?.message || 'Failed to delete audit standard');
     },
   });
 
-  const handleEdit = (auditArea: AuditArea) => {
-    setEditingAuditArea(auditArea);
+  const handleEdit = (auditStandard: AuditStandard) => {
+    setEditingAuditStandard(auditStandard);
     setModalOpen(true);
   };
 
@@ -191,26 +195,16 @@ const AuditAreasList: React.FC = () => {
 
   const handleModalClose = () => {
     setModalOpen(false);
-    setEditingAuditArea(undefined);
-  };
-
-  const getRiskColor = (riskLevel: string) => {
-    const colors = {
-      'Low': 'green',
-      'Medium': 'orange',
-      'High': 'red',
-      'Critical': 'purple',
-    };
-    return colors[riskLevel as keyof typeof colors] || 'default';
+    setEditingAuditStandard(undefined);
   };
 
   const columns = [
     {
       title: 'Name',
       key: 'name',
-      render: (_: any, record: AuditArea) => (
+      render: (_: any, record: AuditStandard) => (
         <Space>
-          <SafetyOutlined />
+          <BookOutlined />
           <span>{record.name}</span>
         </Space>
       ),
@@ -219,21 +213,29 @@ const AuditAreasList: React.FC = () => {
       title: 'Description',
       dataIndex: 'description',
       key: 'description',
-      render: (desc: string) => desc || '-'
+      render: (text: string) => text || '-',
     },
     {
-      title: 'Risk Level',
-      dataIndex: 'riskLevel',
-      key: 'riskLevel',
-      render: (riskLevel: string) => riskLevel ? (
-        <Tag color={getRiskColor(riskLevel)}>{riskLevel}</Tag>
-      ) : '-'
+      title: 'Version',
+      dataIndex: 'version',
+      key: 'version',
+      render: (text: string) => text || '-',
     },
     {
-      title: 'Department',
-      dataIndex: ['department', 'name'],
-      key: 'department',
-      render: (_: any, record: AuditArea) => (record as any).department?.name || '-'
+      title: 'Effective Date',
+      dataIndex: 'effectiveDate',
+      key: 'effectiveDate',
+      render: (date: string) => date ? dayjs(date).format('MMM DD, YYYY') : '-',
+    },
+    {
+      title: 'Status',
+      dataIndex: 'isActive',
+      key: 'isActive',
+      render: (isActive: boolean) => (
+        <Tag color={isActive ? 'green' : 'red'}>
+          {isActive ? 'Active' : 'Inactive'}
+        </Tag>
+      ),
     },
     {
       title: 'Created',
@@ -242,11 +244,11 @@ const AuditAreasList: React.FC = () => {
       render: (date: string) => dayjs(date).format('MMM DD, YYYY'),
     },
     {
-      title: <Button type='link' onClick={() => queryClient.invalidateQueries({ queryKey: ['audit-areas'] })}><ReloadOutlined /></Button>,
+      title: <Button type='link' onClick={() => queryClient.invalidateQueries({ queryKey: ['audit-standards'] })}><ReloadOutlined /></Button>,
       key: 'actions',
       align: 'center' as const,
       width: 60,
-      render: (_: any, record: AuditArea) => {
+      render: (_: any, record: AuditStandard) => {
         const menuItems: MenuProps['items'] = [
           {
             key: 'edit',
@@ -255,19 +257,14 @@ const AuditAreasList: React.FC = () => {
             onClick: () => handleEdit(record),
           },
           {
-            key: 'view',
-            label: 'View Details',
-            onClick: () => navigate(`/audit-areas/${record.id}`),
-          },
-          {
             key: 'delete',
             label: 'Delete',
             icon: <DeleteOutlined />,
             danger: true,
             onClick: () => {
               Modal.confirm({
-                title: 'Delete Audit Area',
-                content: 'Are you sure you want to delete this audit area?',
+                title: 'Delete Audit Standard',
+                content: 'Are you sure you want to delete this audit standard?',
                 okText: 'Yes',
                 cancelText: 'No',
                 onOk: () => handleDelete(record.id),
@@ -297,7 +294,7 @@ const AuditAreasList: React.FC = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 50 }}>
         <Title level={3} style={{ margin: 0 }}>
-          <SafetyOutlined /> Audit Area Management
+          <BookOutlined /> Audit Standards Management
         </Title>
         <Button
           variant='solid'
@@ -305,13 +302,13 @@ const AuditAreasList: React.FC = () => {
           icon={<PlusOutlined />}
           onClick={() => setModalOpen(true)}
         >
-          Add Audit Area
+          Add Audit Standard
         </Button>
       </div>
 
       <Table
         columns={columns}
-        dataSource={auditAreas || []}
+        dataSource={auditStandards || []}
         loading={isPending}
         rowKey="id"
         pagination={{
@@ -319,18 +316,18 @@ const AuditAreasList: React.FC = () => {
           showSizeChanger: true,
           showQuickJumper: true,
           showTotal: (total, range) =>
-            `${range[0]}-${range[1]} of ${total} audit areas`,
+            `${range[0]}-${range[1]} of ${total} audit standards`,
         }}
       />
 
-      <AuditAreaForm
+      <AuditStandardForm
         open={modalOpen}
         onCancel={handleModalClose}
-        auditArea={editingAuditArea}
-        isEdit={!!editingAuditArea}
+        auditStandard={editingAuditStandard}
+        isEdit={!!editingAuditStandard}
       />
     </div>
   );
 };
 
-export default AuditAreasList;
+export default AuditStandardsList;

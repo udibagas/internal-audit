@@ -35,7 +35,7 @@ api.interceptors.response.use(
   }
 );
 
-export async function getItems<T>(
+export async function getAll<T>(
   endpoint: string,
   params: Record<string, string | number | boolean> = {}
 ): Promise<T> {
@@ -43,26 +43,41 @@ export async function getItems<T>(
   return data;
 }
 
-export async function getItem<T>(endpoint: string, id: number): Promise<T> {
+export async function getById<T>(endpoint: string, id: number): Promise<T> {
   const { data } = await api.get<T>(`${endpoint}/${id}`);
   return data;
 }
 
-export async function createItem<T>(endpoint: string, payload: T): Promise<T> {
+export async function create<T, D = T>(
+  endpoint: string,
+  payload: T
+): Promise<D> {
   const { data } = await api.post(endpoint, payload);
   return data;
 }
 
-export async function updateItem<T>(
+export async function update<T, D = T>(
   endpoint: string,
-  id: number,
+  id: number | string,
   payload: T
-): Promise<T> {
+): Promise<D> {
   const { data } = await api.put(`${endpoint}/${id}`, payload);
   return data;
 }
 
-export function deleteItem(endpoint: string, id: number): Promise<void> {
+export async function updateById<T, D = T>(
+  endpoint: string,
+  id: number | string,
+  payload: T
+): Promise<D> {
+  const { data } = await api.patch(`${endpoint}/${id}`, payload);
+  return data;
+}
+
+export function deleteById(
+  endpoint: string,
+  id: number | string
+): Promise<void> {
   return api.delete(`${endpoint}/${id}`);
 }
 

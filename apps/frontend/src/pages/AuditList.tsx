@@ -27,12 +27,16 @@ import {
   Audit,
   CreateAudit,
   UpdateAudit,
-  AUDIT_STATUSES
+  AUDIT_STATUSES,
+  User,
+  AuditArea,
+  AuditStandard
 } from '@audit-system/shared';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
+import { useFetch } from '@/hooks/useFetch';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -48,21 +52,9 @@ const AuditForm: React.FC<AuditFormProps> = ({ open, onCancel, audit, isEdit = f
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
 
-  const { data: users } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => api.get('/users').then(res => res.data),
-  });
-
-  const { data: areas } = useQuery({
-    queryKey: ['audit-areas'],
-    queryFn: () => api.get('/audit-areas').then(res => res.data),
-  });
-
-  const { data: standards } = useQuery({
-    queryKey: ['audit-standards'],
-    queryFn: () => api.get('/audit-standards').then(res => res.data),
-    enabled: open
-  });
+  const { data: users } = useFetch<User[]>('/users')
+  const { data: areas } = useFetch<AuditArea[]>('/audit-areas')
+  const { data: standards } = useFetch<AuditStandard[]>('/audit-standards')
 
   const createMutation = useMutation({
     mutationFn: (data: CreateAudit) => api.post('/audits', data),
@@ -237,11 +229,7 @@ const AuditList: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: audits, isPending } = useQuery({
-    queryKey: ['audits'],
-    queryFn: () => api.get('/audits').then(res => res.data),
-    refetchOnWindowFocus: false,
-  });
+  const { data: audits, isPending } = useFetch<Audit[]>('/audits');
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => api.delete(`/audits/${id}`),
@@ -397,7 +385,6 @@ const AuditList: React.FC = () => {
       </div>
 
       <Table
-        size='small'
         columns={columns}
         dataSource={audits as Audit[]}
         loading={isPending}

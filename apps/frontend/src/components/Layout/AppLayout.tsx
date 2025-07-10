@@ -11,9 +11,10 @@ import {
   SafetyOutlined,
   TeamOutlined,
   SettingOutlined,
+  BookOutlined,
 } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router';
 
 const { Header, Sider, Content } = Layout;
 
@@ -32,6 +33,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       key: '/dashboard',
       icon: <DashboardOutlined />,
       label: 'Dashboard',
+    },
+    {
+      key: '/audit-plans',
+      icon: <FileTextOutlined />,
+      label: 'Audit Plans',
     },
     {
       key: '/audits',
@@ -62,6 +68,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           key: '/audit-areas',
           icon: <AuditOutlined />,
           label: 'Audit Areas',
+        },
+        {
+          key: '/audit-standards',
+          icon: <BookOutlined />,
+          label: 'Audit Standards',
+        },
+        {
+          key: '/audit-teams',
+          icon: <TeamOutlined />,
+          label: 'Audit Teams',
         },
       ],
     },
