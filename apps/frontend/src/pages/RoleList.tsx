@@ -258,6 +258,7 @@ const RoleList: React.FC = () => {
       </div>
 
       <Table
+        size='middle'
         columns={columns}
         dataSource={roles}
         loading={isPending}

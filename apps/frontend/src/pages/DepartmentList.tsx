@@ -290,6 +290,7 @@ const DepartmentList: React.FC = () => {
       </div>
 
       <Table
+        size='middle'
         columns={columns}
         dataSource={departments as any[]}
         loading={isPending}

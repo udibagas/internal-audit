@@ -329,6 +329,7 @@ const AuditTeamsList: React.FC = () => {
       </div>
 
       <Table
+        size='middle'
         columns={columns}
         dataSource={auditTeams}
         loading={isPending}

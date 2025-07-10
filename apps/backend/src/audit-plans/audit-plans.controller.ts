@@ -37,6 +37,13 @@ export class AuditPlansController {
     return this.auditPlansService.findAll();
   }
 
+  @Get("items")
+  @ApiOperation({ summary: "Get all audit plan items" })
+  @ApiQuery({ name: "planId", required: false, type: Number })
+  findAllItems(@Query("planId") planId?: string) {
+    return this.auditPlansService.findAllItems(planId ? +planId : undefined);
+  }
+
   @Get(":id")
   @ApiOperation({ summary: "Get audit plan by ID" })
   @ApiResponse({ status: 200, description: "Audit plan found" })
@@ -73,13 +80,6 @@ export class AuditPlansController {
   })
   createItem(@Body() createAuditPlanItemDto: CreateAuditPlanItemDto) {
     return this.auditPlansService.createItem(createAuditPlanItemDto);
-  }
-
-  @Get("items")
-  @ApiOperation({ summary: "Get all audit plan items" })
-  @ApiQuery({ name: "planId", required: false, type: Number })
-  findAllItems(@Query("planId") planId?: string) {
-    return this.auditPlansService.findAllItems(planId ? +planId : undefined);
   }
 
   @Get("items/:id")

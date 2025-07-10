@@ -346,6 +346,7 @@ const UserList: React.FC = () => {
       </div>
 
       <Table
+        size='middle'
         columns={columns}
         dataSource={users}
         loading={isPending}

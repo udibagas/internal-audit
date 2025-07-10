@@ -385,10 +385,15 @@ const AuditList: React.FC = () => {
       </div>
 
       <Table
+        size='middle'
         columns={columns}
         dataSource={audits as Audit[]}
         loading={isPending}
         rowKey="id"
+        onRow={(record) => ({
+          onClick: () => handleView(record),
+          style: { cursor: 'pointer' },
+        })}
         pagination={{
           pageSize: 10,
           showSizeChanger: true,

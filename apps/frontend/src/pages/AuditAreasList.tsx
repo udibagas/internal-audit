@@ -19,7 +19,8 @@ import {
   DeleteOutlined,
   SafetyOutlined,
   MoreOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  EyeOutlined
 } from '@ant-design/icons';
 import { AuditArea, CreateAuditArea, UpdateAuditArea, Department } from '@audit-system/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -257,6 +258,7 @@ const AuditAreasList: React.FC = () => {
           {
             key: 'view',
             label: 'View Details',
+            icon: <EyeOutlined />,
             onClick: () => navigate(`/audit-areas/${record.id}`),
           },
           {
@@ -310,6 +312,7 @@ const AuditAreasList: React.FC = () => {
       </div>
 
       <Table
+        size='middle'
         columns={columns}
         dataSource={auditAreas || []}
         loading={isPending}

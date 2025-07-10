@@ -262,7 +262,7 @@ const AuditPlanDetail: React.FC = () => {
   // Fetch audit plan
   const { data: auditPlan, isPending: planLoading } = useQuery({
     queryKey: ['audit-plan', planId],
-    queryFn: () => getById<AuditPlan>('/audit-plan', planId),
+    queryFn: () => getById<AuditPlan>('/audit-plans', planId),
     enabled: !!planId,
     refetchOnWindowFocus: false,
   });
@@ -270,7 +270,7 @@ const AuditPlanDetail: React.FC = () => {
   // Fetch audit plan items
   const { data: planItems, isPending: itemsLoading } = useQuery({
     queryKey: ['audit-plan-items', planId],
-    queryFn: () => getAll<AuditPlanItem[]>('/audit-plans/items/' + planId),
+    queryFn: () => getAll<AuditPlanItem[]>('/audit-plans/items?planId=' + planId),
     enabled: !!planId,
     refetchOnWindowFocus: false,
   });
@@ -482,51 +482,49 @@ const AuditPlanDetail: React.FC = () => {
 
       <Tabs defaultActiveKey="details">
         <TabPane tab="Plan Details" key="details">
-          <Card>
-            <Descriptions bordered column={2}>
-              <Descriptions.Item label="Plan Name" span={2}>
-                {auditPlan.name}
-              </Descriptions.Item>
-              <Descriptions.Item label="Fiscal Year">
-                {auditPlan.fiscalYear}
-              </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                <Tag color={
-                  auditPlan.status === 'Draft' ? 'default' :
-                    auditPlan.status === 'Approved' ? 'blue' :
-                      auditPlan.status === 'Active' ? 'green' :
-                        auditPlan.status === 'Completed' ? 'purple' : 'orange'
-                }>
-                  {auditPlan.status}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Description" span={2}>
-                {auditPlan.description || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Created By">
-                <Space>
-                  <UserOutlined />
-                  {creator?.name || `User #${auditPlan.createdById}`}
-                </Space>
-              </Descriptions.Item>
-              <Descriptions.Item label="Created At">
-                {dayjs(auditPlan.createdAt).format('MMMM DD, YYYY HH:mm')}
-              </Descriptions.Item>
-              {auditPlan.approvedById && (
-                <>
-                  <Descriptions.Item label="Approved By">
-                    <Space>
-                      <UserOutlined />
-                      {approver?.name || `User #${auditPlan.approvedById}`}
-                    </Space>
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Approved At">
-                    {auditPlan.approvedAt ? dayjs(auditPlan.approvedAt).format('MMMM DD, YYYY HH:mm') : '-'}
-                  </Descriptions.Item>
-                </>
-              )}
-            </Descriptions>
-          </Card>
+          <Descriptions bordered column={1} size='small'>
+            <Descriptions.Item label="Plan Name" span={2}>
+              {auditPlan.name}
+            </Descriptions.Item>
+            <Descriptions.Item label="Fiscal Year">
+              {auditPlan.fiscalYear}
+            </Descriptions.Item>
+            <Descriptions.Item label="Status">
+              <Tag color={
+                auditPlan.status === 'Draft' ? 'default' :
+                  auditPlan.status === 'Approved' ? 'blue' :
+                    auditPlan.status === 'Active' ? 'green' :
+                      auditPlan.status === 'Completed' ? 'purple' : 'orange'
+              }>
+                {auditPlan.status}
+              </Tag>
+            </Descriptions.Item>
+            <Descriptions.Item label="Description" span={2}>
+              {auditPlan.description || '-'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Created By">
+              <Space>
+                <UserOutlined />
+                {creator?.name || `User #${auditPlan.createdById}`}
+              </Space>
+            </Descriptions.Item>
+            <Descriptions.Item label="Created At">
+              {dayjs(auditPlan.createdAt).format('MMMM DD, YYYY HH:mm')}
+            </Descriptions.Item>
+            {auditPlan.approvedById && (
+              <>
+                <Descriptions.Item label="Approved By">
+                  <Space>
+                    <UserOutlined />
+                    {approver?.name || `User #${auditPlan.approvedById}`}
+                  </Space>
+                </Descriptions.Item>
+                <Descriptions.Item label="Approved At">
+                  {auditPlan.approvedAt ? dayjs(auditPlan.approvedAt).format('MMMM DD, YYYY HH:mm') : '-'}
+                </Descriptions.Item>
+              </>
+            )}
+          </Descriptions>
         </TabPane>
 
         <TabPane tab={`Plan Items (${planItems?.length || 0})`} key="items">
@@ -542,6 +540,7 @@ const AuditPlanDetail: React.FC = () => {
           </div>
 
           <Table
+            size='middle'
             columns={planItemColumns}
             dataSource={planItems}
             loading={itemsLoading}

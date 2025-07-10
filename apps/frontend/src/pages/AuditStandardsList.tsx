@@ -307,6 +307,7 @@ const AuditStandardsList: React.FC = () => {
       </div>
 
       <Table
+        size='middle'
         columns={columns}
         dataSource={auditStandards || []}
         loading={isPending}

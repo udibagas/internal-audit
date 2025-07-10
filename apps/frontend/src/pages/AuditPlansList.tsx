@@ -337,10 +337,15 @@ const AuditPlansList: React.FC = () => {
       </div>
 
       <Table
+        size='middle'
         columns={columns}
         dataSource={auditPlans}
         loading={isPending}
         rowKey="id"
+        onRow={(record) => ({
+          onClick: () => navigate(`/audit-plans/${record.id}`),
+          style: { cursor: 'pointer' },
+        })}
         pagination={{
           pageSize: 10,
           showSizeChanger: true,
