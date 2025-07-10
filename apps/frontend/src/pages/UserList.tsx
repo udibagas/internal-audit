@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Typography,
   Table,
@@ -9,7 +9,6 @@ import {
   Select,
   Space,
   Tag,
-  message,
   Dropdown,
   MenuProps
 } from 'antd';
@@ -22,10 +21,9 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 import { User, CreateUser, UpdateUser, Role, Department } from '@audit-system/shared';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/api';
 import dayjs from 'dayjs';
 import { useFetch } from '@/hooks/useFetch';
+import { useCrud } from '@/hooks/useCrud';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -41,33 +39,7 @@ interface UserFormProps {
 
 const UserForm: React.FC<UserFormProps> = ({ open, onCancel, user, isEdit = false, roles = [], departments = [] }) => {
   const [form] = Form.useForm();
-  const queryClient = useQueryClient();
-
-  const createMutation = useMutation({
-    mutationFn: (data: CreateUser) => api.post('/users', data),
-    onSuccess: () => {
-      message.success('User created successfully');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      onCancel();
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to create user');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateUser }) => api.patch(`/users/${id}`, data),
-    onSuccess: () => {
-      message.success('User updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      onCancel();
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to update user');
-    },
-  });
+  const { createMutation, updateMutation, } = useCrud<User, CreateUser, UpdateUser>('/users');
 
   const onSubmit = async (values: CreateUser | UpdateUser) => {
     if (isEdit && user) {
@@ -75,6 +47,9 @@ const UserForm: React.FC<UserFormProps> = ({ open, onCancel, user, isEdit = fals
     } else {
       createMutation.mutate(values as CreateUser);
     }
+
+    onCancel();
+    form.resetFields();
   };
 
   React.useEffect(() => {
@@ -189,38 +164,20 @@ const UserForm: React.FC<UserFormProps> = ({ open, onCancel, user, isEdit = fals
 };
 
 const UserList: React.FC = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | undefined>();
-  const queryClient = useQueryClient();
+  const {
+    editingData,
+    modalOpen,
+    queryClient,
+    useFetch: useFetchCrud,
+    setModalOpen,
+    handleEdit,
+    handleDelete,
+    handleModalClose,
+  } = useCrud<User>('/users');
 
-  const { data: users, isPending } = useFetch<User[]>('/users');
+  const { data: users, isPending } = useFetchCrud('/users');
   const { data: roles } = useFetch<Role[]>('/roles');
   const { data: departments } = useFetch<Department[]>('/departments');
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/users/${id}`),
-    onSuccess: () => {
-      message.success('User deactivated successfully');
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to deactivate user');
-    },
-  });
-
-  const handleEdit = (user: User) => {
-    setEditingUser(user);
-    setModalOpen(true);
-  };
-
-  const handleDelete = (id: number) => {
-    deleteMutation.mutate(id);
-  };
-
-  const handleModalClose = () => {
-    setModalOpen(false);
-    setEditingUser(undefined);
-  };
 
   const getRoleColor = (roleName?: string) => {
     if (!roleName) return 'default';
@@ -282,7 +239,7 @@ const UserList: React.FC = () => {
       render: (date: string) => dayjs(date).format('MMM DD, YYYY'),
     },
     {
-      title: <Button type='link' onClick={() => queryClient.invalidateQueries({ queryKey: ['users'] })}><ReloadOutlined /></Button>,
+      title: <Button type='link' onClick={() => queryClient.invalidateQueries({ queryKey: ['/users'] })}><ReloadOutlined /></Button>,
       key: 'actions',
       align: 'center' as const,
       width: 60,
@@ -351,6 +308,10 @@ const UserList: React.FC = () => {
         dataSource={users}
         loading={isPending}
         rowKey="id"
+        onRow={(record) => ({
+          onDoubleClick: () => handleEdit(record),
+          style: { cursor: 'pointer' },
+        })}
         pagination={{
           pageSize: 10,
           showSizeChanger: true,
@@ -363,8 +324,8 @@ const UserList: React.FC = () => {
       <UserForm
         open={modalOpen}
         onCancel={handleModalClose}
-        user={editingUser}
-        isEdit={!!editingUser}
+        user={editingData}
+        isEdit={!!editingData}
         roles={roles}
         departments={departments}
       />

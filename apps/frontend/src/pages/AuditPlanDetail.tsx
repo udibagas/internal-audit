@@ -13,7 +13,6 @@ import {
   message,
   Dropdown,
   MenuProps,
-  Card,
   Descriptions,
   Tabs
 } from 'antd';
@@ -131,7 +130,7 @@ const AuditPlanItemForm: React.FC<AuditPlanItemFormProps> = ({
 
   return (
     <Modal
-      width={600}
+      width={500}
       title={isEdit ? 'Edit Plan Item' : 'Add Plan Item'}
       open={open}
       onCancel={onCancel}
@@ -359,16 +358,16 @@ const AuditPlanDetail: React.FC = () => {
       title: 'Planned Dates',
       key: 'dates',
       render: (_: any, record: AuditPlanItem) => (
-        <Space direction="vertical" size="small">
+        <Space direction="horizontal" size="small">
           {record.plannedStartDate && (
-            <div>
-              <CalendarOutlined /> Start: {dayjs(record.plannedStartDate).format('MMM DD, YYYY')}
-            </div>
+            <span>
+              <CalendarOutlined /> Start: {dayjs(record.plannedStartDate).format('DD-MMM-YYYY')}
+            </span>
           )}
           {record.plannedEndDate && (
-            <div>
-              <CalendarOutlined /> End: {dayjs(record.plannedEndDate).format('MMM DD, YYYY')}
-            </div>
+            <span>
+              <CalendarOutlined /> End: {dayjs(record.plannedEndDate).format('DD-MMM-YYYY')}
+            </span>
           )}
           {!record.plannedStartDate && !record.plannedEndDate && '-'}
         </Space>

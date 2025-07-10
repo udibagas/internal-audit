@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Typography,
   Table,
@@ -9,7 +9,6 @@ import {
   Select,
   Space,
   Tag,
-  message,
   Dropdown,
   MenuProps
 } from 'antd';
@@ -24,11 +23,10 @@ import {
   EyeOutlined
 } from '@ant-design/icons';
 import { AuditPlan, CreateAuditPlan, UpdateAuditPlan, User } from '@audit-system/shared';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router';
 import { useFetch } from '@/hooks/useFetch';
-import { create, deleteById, updateById } from '@/lib/api';
+import { useCrud } from '@/hooks/useCrud';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -43,33 +41,7 @@ interface AuditPlanFormProps {
 
 const AuditPlanForm: React.FC<AuditPlanFormProps> = ({ open, onCancel, auditPlan, isEdit = false, users = [] }) => {
   const [form] = Form.useForm();
-  const queryClient = useQueryClient();
-
-  const createMutation = useMutation({
-    mutationFn: (data: CreateAuditPlan) => create('/audit-plans', data),
-    onSuccess: () => {
-      message.success('Audit plan created successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-plans'] });
-      onCancel();
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to create audit plan');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateAuditPlan }) => updateById('/update-plans', id, data),
-    onSuccess: () => {
-      message.success('Audit plan updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-plans'] });
-      onCancel();
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to update audit plan');
-    },
-  });
+  const { createMutation, updateMutation, } = useCrud<AuditPlan, CreateAuditPlan, UpdateAuditPlan>('/audit-plans');
 
   const onSubmit = async (values: CreateAuditPlan | UpdateAuditPlan) => {
     if (isEdit && auditPlan) {
@@ -77,6 +49,9 @@ const AuditPlanForm: React.FC<AuditPlanFormProps> = ({ open, onCancel, auditPlan
     } else {
       createMutation.mutate(values as CreateAuditPlan);
     }
+
+    onCancel();
+    form.resetFields();
   };
 
   React.useEffect(() => {
@@ -177,38 +152,21 @@ const AuditPlanForm: React.FC<AuditPlanFormProps> = ({ open, onCancel, auditPlan
 };
 
 const AuditPlansList: React.FC = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingAuditPlan, setEditingAuditPlan] = useState<AuditPlan | undefined>();
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const { data: auditPlans, isPending } = useFetch<AuditPlan[]>('/audit-plans');
+  const {
+    editingData: editingAuditPlan,
+    modalOpen,
+    queryClient,
+    useFetch: useFetchCrud,
+    setModalOpen,
+    handleEdit,
+    handleDelete,
+    handleModalClose,
+  } = useCrud<AuditPlan>('/users');
+
+  const { data: auditPlans, isPending } = useFetchCrud('/audit-plans');
   const { data: users } = useFetch<User[]>('/users')
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => deleteById('/audit-plans', id),
-    onSuccess: () => {
-      message.success('Audit plan deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-plans'] });
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to delete audit plan');
-    },
-  });
-
-  const handleEdit = (auditPlan: AuditPlan) => {
-    setEditingAuditPlan(auditPlan);
-    setModalOpen(true);
-  };
-
-  const handleDelete = (id: number) => {
-    deleteMutation.mutate(id);
-  };
-
-  const handleModalClose = () => {
-    setModalOpen(false);
-    setEditingAuditPlan(undefined);
-  };
 
   const getStatusColor = (status?: string) => {
     if (!status) return 'default';
@@ -343,7 +301,7 @@ const AuditPlansList: React.FC = () => {
         loading={isPending}
         rowKey="id"
         onRow={(record) => ({
-          onClick: () => navigate(`/audit-plans/${record.id}`),
+          onDoubleClick: () => navigate(`/audit-plans/${record.id}`),
           style: { cursor: 'pointer' },
         })}
         pagination={{
