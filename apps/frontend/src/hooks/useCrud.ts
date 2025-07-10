@@ -17,7 +17,6 @@ export const useCrud = <
   );
 
   function useFetch<T = FetchType[]>(
-    endpoint: string,
     params?: Record<string, string | number | boolean>
   ) {
     return useQuery({

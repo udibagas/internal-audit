@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Typography,
   Table,
@@ -9,7 +9,6 @@ import {
   Select,
   Space,
   Tag,
-  message,
   Dropdown,
   MenuProps
 } from 'antd';
@@ -23,11 +22,10 @@ import {
   EyeOutlined
 } from '@ant-design/icons';
 import { AuditArea, CreateAuditArea, UpdateAuditArea, Department } from '@audit-system/shared';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router';
-import api, { create, updateById } from '@/lib/api';
 import dayjs from 'dayjs';
 import { useFetch } from '@/hooks/useFetch';
+import { useCrud } from '@/hooks/useCrud';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -41,34 +39,8 @@ interface AuditAreaFormProps {
 
 const AuditAreaForm: React.FC<AuditAreaFormProps> = ({ open, onCancel, auditArea, isEdit = false }) => {
   const [form] = Form.useForm();
-  const queryClient = useQueryClient();
+  const { createMutation, updateMutation, } = useCrud<AuditArea, CreateAuditArea, UpdateAuditArea>('/roles');
   const { data: departments } = useFetch<Department[]>('/departments');
-
-  const createMutation = useMutation({
-    mutationFn: (data: CreateAuditArea) => create<CreateAuditArea, AuditArea>('/audit-areas', data),
-    onSuccess: () => {
-      message.success('Audit area created successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-areas'] });
-      onCancel();
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to create audit area');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateAuditArea }) => updateById<UpdateAuditArea, AuditArea>(`/audit-areas/`, id, data),
-    onSuccess: () => {
-      message.success('Audit area updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-areas'] });
-      onCancel();
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to update audit area');
-    },
-  });
 
   const onSubmit = async (values: CreateAuditArea | UpdateAuditArea) => {
     if (isEdit && auditArea) {
@@ -76,6 +48,9 @@ const AuditAreaForm: React.FC<AuditAreaFormProps> = ({ open, onCancel, auditArea
     } else {
       createMutation.mutate(values as CreateAuditArea);
     }
+
+    onCancel();
+    form.resetFields();
   };
 
   React.useEffect(() => {
@@ -163,37 +138,20 @@ const AuditAreaForm: React.FC<AuditAreaFormProps> = ({ open, onCancel, auditArea
 };
 
 const AuditAreasList: React.FC = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingAuditArea, setEditingAuditArea] = useState<AuditArea | undefined>();
+  const {
+    editingData: editingAuditArea,
+    modalOpen,
+    queryClient,
+    useFetch: useFetchCrud,
+    setModalOpen,
+    handleEdit,
+    handleDelete,
+    handleModalClose,
+  } = useCrud<AuditArea>('/audit-areas');
+
+  const { data: auditAreas, isPending } = useFetchCrud();
+
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  const { data: auditAreas, isPending } = useFetch<AuditArea[]>('/audit-areas');
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/audit-areas/${id}`),
-    onSuccess: () => {
-      message.success('Audit area deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-areas'] });
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to delete audit area');
-    },
-  });
-
-  const handleEdit = (auditArea: AuditArea) => {
-    setEditingAuditArea(auditArea);
-    setModalOpen(true);
-  };
-
-  const handleDelete = (id: number) => {
-    deleteMutation.mutate(id);
-  };
-
-  const handleModalClose = () => {
-    setModalOpen(false);
-    setEditingAuditArea(undefined);
-  };
 
   const getRiskColor = (riskLevel: string) => {
     const colors = {
@@ -317,6 +275,10 @@ const AuditAreasList: React.FC = () => {
         dataSource={auditAreas || []}
         loading={isPending}
         rowKey="id"
+        onRow={(record) => ({
+          onClick: () => handleEdit(record),
+          style: { cursor: 'pointer' },
+        })}
         pagination={{
           pageSize: 10,
           showSizeChanger: true,

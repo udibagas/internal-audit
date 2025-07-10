@@ -34,7 +34,7 @@ interface RoleFormProps {
 
 const RoleForm: React.FC<RoleFormProps> = ({ open, onCancel, role, isEdit = false }) => {
   const [form] = Form.useForm();
-  const { createMutation, updateMutation, } = useCrud<User, CreateRole, UpdateRole>('/users');
+  const { createMutation, updateMutation, } = useCrud<User, CreateRole, UpdateRole>('/roles');
 
   const onSubmit = async (values: CreateRole | UpdateRole) => {
     if (isEdit && role) {
@@ -118,7 +118,7 @@ const RoleList: React.FC = () => {
     handleModalClose,
   } = useCrud<Role>('/roles');
 
-  const { data: roles, isPending } = useFetchCrud('/roles');
+  const { data: roles, isPending } = useFetchCrud();
 
   const columns = [
     {

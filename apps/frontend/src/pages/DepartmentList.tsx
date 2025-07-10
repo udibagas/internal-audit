@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Typography,
   Table,
@@ -9,7 +9,6 @@ import {
   Select,
   Space,
   Tag,
-  message,
   Dropdown,
   MenuProps
 } from 'antd';
@@ -22,10 +21,9 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 import { Department, CreateDepartment, UpdateDepartment, User } from '@audit-system/shared';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/api';
 import dayjs from 'dayjs';
 import { useFetch } from '@/hooks/useFetch';
+import { useCrud } from '@/hooks/useCrud';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -39,35 +37,8 @@ interface DepartmentFormProps {
 
 const DepartmentForm: React.FC<DepartmentFormProps> = ({ open, onCancel, department, isEdit = false }) => {
   const [form] = Form.useForm();
-  const queryClient = useQueryClient();
-
+  const { createMutation, updateMutation, } = useCrud<Department, CreateDepartment, UpdateDepartment>('/departments');
   const { data: users } = useFetch<User[]>('/users');
-
-  const createMutation = useMutation({
-    mutationFn: (data: CreateDepartment) => api.post('/departments', data),
-    onSuccess: () => {
-      message.success('Department created successfully');
-      queryClient.invalidateQueries({ queryKey: ['departments'] });
-      onCancel();
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to create department');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateDepartment }) => api.patch(`/departments/${id}`, data),
-    onSuccess: () => {
-      message.success('Department updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['departments'] });
-      onCancel();
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to update department');
-    },
-  });
 
   const onSubmit = async (values: CreateDepartment | UpdateDepartment) => {
     if (isEdit && department) {
@@ -75,6 +46,9 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({ open, onCancel, departm
     } else {
       createMutation.mutate(values as CreateDepartment);
     }
+
+    onCancel();
+    form.resetFields();
   };
 
   React.useEffect(() => {
@@ -154,36 +128,18 @@ const DepartmentForm: React.FC<DepartmentFormProps> = ({ open, onCancel, departm
 };
 
 const DepartmentList: React.FC = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingDepartment, setEditingDepartment] = useState<Department | undefined>();
-  const queryClient = useQueryClient();
+  const {
+    editingData: editingDepartment,
+    modalOpen,
+    queryClient,
+    useFetch: useFetchCrud,
+    setModalOpen,
+    handleEdit,
+    handleDelete,
+    handleModalClose,
+  } = useCrud<Department>('/departments');
 
-  const { data: departments, isPending } = useFetch<Department[]>('/departments');
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/departments/${id}`),
-    onSuccess: () => {
-      message.success('Department deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['departments'] });
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to delete department');
-    },
-  });
-
-  const handleEdit = (department: Department) => {
-    setEditingDepartment(department);
-    setModalOpen(true);
-  };
-
-  const handleDelete = (id: number) => {
-    deleteMutation.mutate(id);
-  };
-
-  const handleModalClose = () => {
-    setModalOpen(false);
-    setEditingDepartment(undefined);
-  };
+  const { data: departments, isPending } = useFetchCrud();
 
   const columns = [
     {

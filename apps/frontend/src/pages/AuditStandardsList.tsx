@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Typography,
   Table,
@@ -10,7 +10,6 @@ import {
   Switch,
   Space,
   Tag,
-  message,
   Dropdown,
   MenuProps
 } from 'antd';
@@ -23,10 +22,8 @@ import {
   ReloadOutlined
 } from '@ant-design/icons';
 import { AuditStandard, CreateAuditStandard, UpdateAuditStandard } from '@audit-system/shared';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/api';
 import dayjs from 'dayjs';
-import { useFetch } from '@/hooks/useFetch';
+import { useCrud } from '@/hooks/useCrud';
 
 const { Title } = Typography;
 
@@ -39,33 +36,7 @@ interface AuditStandardFormProps {
 
 const AuditStandardForm: React.FC<AuditStandardFormProps> = ({ open, onCancel, auditStandard, isEdit = false }) => {
   const [form] = Form.useForm();
-  const queryClient = useQueryClient();
-
-  const createMutation = useMutation({
-    mutationFn: (data: CreateAuditStandard) => api.post('/audit-standards', data),
-    onSuccess: () => {
-      message.success('Audit standard created successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-standards'] });
-      onCancel();
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to create audit standard');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateAuditStandard }) => api.patch(`/audit-standards/${id}`, data),
-    onSuccess: () => {
-      message.success('Audit standard updated successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-standards'] });
-      onCancel();
-      form.resetFields();
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to update audit standard');
-    },
-  });
+  const { createMutation, updateMutation, } = useCrud<AuditStandard, CreateAuditStandard, UpdateAuditStandard>('/departments');
 
   const onSubmit = async (values: any) => {
     const payload = {
@@ -78,6 +49,9 @@ const AuditStandardForm: React.FC<AuditStandardFormProps> = ({ open, onCancel, a
     } else {
       createMutation.mutate(payload as CreateAuditStandard);
     }
+
+    onCancel();
+    form.resetFields();
   };
 
   React.useEffect(() => {
@@ -167,36 +141,18 @@ const AuditStandardForm: React.FC<AuditStandardFormProps> = ({ open, onCancel, a
 };
 
 const AuditStandardsList: React.FC = () => {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingAuditStandard, setEditingAuditStandard] = useState<AuditStandard | undefined>();
-  const queryClient = useQueryClient();
+  const {
+    editingData: editingAuditStandard,
+    modalOpen,
+    queryClient,
+    useFetch: useFetchCrud,
+    setModalOpen,
+    handleEdit,
+    handleDelete,
+    handleModalClose,
+  } = useCrud<AuditStandard>('/audit-standards');
 
-  const { data: auditStandards, isPending } = useFetch<AuditStandard[]>('/audit-standards');
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/audit-standards/${id}`),
-    onSuccess: () => {
-      message.success('Audit standard deleted successfully');
-      queryClient.invalidateQueries({ queryKey: ['audit-standards'] });
-    },
-    onError: (error: any) => {
-      message.error(error.response?.data?.message || 'Failed to delete audit standard');
-    },
-  });
-
-  const handleEdit = (auditStandard: AuditStandard) => {
-    setEditingAuditStandard(auditStandard);
-    setModalOpen(true);
-  };
-
-  const handleDelete = (id: number) => {
-    deleteMutation.mutate(id);
-  };
-
-  const handleModalClose = () => {
-    setModalOpen(false);
-    setEditingAuditStandard(undefined);
-  };
+  const { data: auditStandards, isPending } = useFetchCrud();
 
   const columns = [
     {
@@ -312,6 +268,10 @@ const AuditStandardsList: React.FC = () => {
         dataSource={auditStandards || []}
         loading={isPending}
         rowKey="id"
+        onRow={(record) => ({
+          onClick: () => handleEdit(record),
+          style: { cursor: 'pointer' },
+        })}
         pagination={{
           pageSize: 10,
           showSizeChanger: true,

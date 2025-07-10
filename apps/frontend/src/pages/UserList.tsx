@@ -175,7 +175,7 @@ const UserList: React.FC = () => {
     handleModalClose,
   } = useCrud<User>('/users');
 
-  const { data: users, isPending } = useFetchCrud('/users');
+  const { data: users, isPending } = useFetchCrud();
   const { data: roles } = useFetch<Role[]>('/roles');
   const { data: departments } = useFetch<Department[]>('/departments');
 
