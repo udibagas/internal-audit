@@ -163,9 +163,9 @@ const AuditPlansList: React.FC = () => {
     handleEdit,
     handleDelete,
     handleModalClose,
-  } = useCrud<AuditPlan>('/users');
+  } = useCrud<AuditPlan>('/audit-plans');
 
-  const { data: auditPlans, isPending } = useFetchCrud('/audit-plans');
+  const { data: auditPlans, isPending } = useFetchCrud();
   const { data: users } = useFetch<User[]>('/users')
 
   const getStatusColor = (status?: string) => {
